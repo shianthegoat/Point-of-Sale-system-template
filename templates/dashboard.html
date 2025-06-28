@@ -1,0 +1,262 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Dashboard - POS System{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Overview of your business performance{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <!-- Hero Stats -->
+    <div class="hero-stats">
+        <div class="hero-stat-card primary">
+            <div class="hero-stat-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="hero-stat-content">
+                <div class="hero-stat-number" id="totalSales">₱0.00</div>
+                <div class="hero-stat-label">Total Sales Today</div>
+                <div class="hero-stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span id="salesChange">0%</span> from yesterday
+                </div>
+            </div>
+        </div>
+        
+        <div class="hero-stat-card secondary">
+            <div class="hero-stat-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="hero-stat-content">
+                <div class="hero-stat-number" id="totalTransactions">0</div>
+                <div class="hero-stat-label">Transactions Today</div>
+                <div class="hero-stat-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span id="transactionsChange">0%</span> from yesterday
+                </div>
+            </div>
+        </div>
+        
+        <div class="hero-stat-card info">
+            <div class="hero-stat-icon">
+                <i class="fas fa-boxes"></i>
+            </div>
+            <div class="hero-stat-content">
+                <div class="hero-stat-number" id="totalItems">0</div>
+                <div class="hero-stat-label">Total Inventory Items</div>
+                <div class="hero-stat-change neutral">
+                    <i class="fas fa-minus"></i>
+                    Stock overview
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sales Activity Table -->
+    <div class="dashboard-table-section">
+        <div class="section-header">
+            <h2>Recent Sales Activity</h2>
+            <button class="refresh-btn" onclick="window.salesManager.loadRecentSalesActivity()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Customer</th>
+                        <th>Items & Total</th>
+                        <th>Salesperson</th>
+                    </tr>
+                </thead>
+                <tbody id="recentSalesTable">
+                    <tr>
+                        <td colspan="4" class="text-center">Loading recent sales...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top Selling Items Table -->
+    <div class="dashboard-table-section">
+        <div class="section-header">
+            <h2>Top Selling Items</h2>
+            <button class="refresh-btn" onclick="loadTopSellingItems()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Units Sold</th>
+                        <th>Revenue</th>
+                        <th>Stock Level</th>
+                    </tr>
+                </thead>
+                <tbody id="topItemsTable">
+                    <tr>
+                        <td colspan="5" class="text-center">Loading top items...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize dashboard data when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load recent sales activity
+        if (window.salesManager) {
+            console.log('[Dashboard] Calling loadRecentSalesActivity...');
+            window.salesManager.loadRecentSalesActivity();
+        }
+        
+        // Load dashboard stats
+        loadDashboardStats();
+        
+        // Load top selling items
+        loadTopSellingItems();
+    });
+    
+    // Button for testing dummy data rendering
+    document.addEventListener('DOMContentLoaded', function() {
+        const dummyBtn = document.createElement('button');
+        dummyBtn.textContent = 'Test Table with Dummy Data';
+        dummyBtn.className = 'refresh-btn';
+        dummyBtn.style.marginLeft = '12px';
+        dummyBtn.onclick = function() {
+            if (window.salesManager && window.salesManager.renderRecentSales) {
+                window.salesManager.renderRecentSales([
+                    {
+                        date: new Date().toISOString(),
+                        customer_name: 'John Doe',
+                        items_display: 'Item A x2, Item B x1',
+                        total: 1500,
+                        staff_name: 'Admin'
+                    },
+                    {
+                        date: new Date().toISOString(),
+                        customer_name: 'Jane Smith',
+                        items_display: 'Item C x3',
+                        total: 900,
+                        staff_name: 'Cashier1'
+                    }
+                ]);
+            }
+        };
+        // Add after the refresh button in the recent sales section
+        const sectionHeader = document.querySelector('.dashboard-table-section .section-header');
+        if (sectionHeader) sectionHeader.appendChild(dummyBtn);
+    });
+
+    function loadDashboardStats() {
+        // Load total sales today
+        fetch('/api/sales')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const today = new Date().toDateString();
+                    const todaySales = data.sales.filter(sale => {
+                        const saleDate = new Date(sale.date_parsed || sale.date).toDateString();
+                        return saleDate === today;
+                    });
+                    
+                    const totalToday = todaySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+                    document.getElementById('totalSales').textContent = `₱${window.utils.formatNumber(totalToday.toFixed(2))}`;
+                    document.getElementById('totalTransactions').textContent = window.utils.formatNumber(todaySales.length);
+                }
+            })
+            .catch(error => console.error('Error loading sales stats:', error));
+        
+        // Load inventory count
+        fetch('/api/inventory')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('totalItems').textContent = window.utils.formatNumber(data.inventory.length);
+                }
+            })
+            .catch(error => console.error('Error loading inventory stats:', error));
+    }
+    
+    function loadTopSellingItems() {
+        const tbody = document.getElementById('topItemsTable');
+        if (!tbody) return;
+        
+        // Show loading state
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Loading top items...</td></tr>';
+        
+        // Fetch top selling items from API
+        fetch('/api/sales/top-items?limit=5&period=all')
+            .then(response => response.json())
+            .then(data => {
+                if (!data || !data.success) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center text-danger">
+                                Error loading top selling items
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                const topItems = data.top_items || [];
+                if (topItems.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                <div class="empty-state">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <p>No sales data available</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                // Render the top items table
+                tbody.innerHTML = topItems.map(item => `
+                    <tr>
+                        <td>
+                            <div class="item-name">${window.utils.escapeHtml(item.name)}</div>
+                        </td>
+                        <td>
+                            <span class="category-badge">${window.utils.escapeHtml(item.category)}</span>
+                        </td>
+                        <td>
+                            <span class="units-sold">${window.utils.formatNumber(item.units_sold)}</span>
+                        </td>
+                        <td>
+                            <span class="revenue">${window.utils.formatCurrency(item.revenue)}</span>
+                        </td>
+                        <td>
+                            <span class="stock-level ${item.stock_level <= 5 ? 'low-stock' : item.stock_level === 0 ? 'out-of-stock' : 'in-stock'}">
+                                ${window.utils.formatNumber(item.stock_level)}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            })
+            .catch(error => {
+                console.error('Error loading top selling items:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger">
+                            Error loading top selling items. Please try again.
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+</script>
+{% endblock %} 

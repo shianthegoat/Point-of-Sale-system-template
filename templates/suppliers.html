@@ -1,0 +1,125 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Suppliers - POS System{% endblock %}
+
+{% block page_title %}Suppliers{% endblock %}
+{% block page_subtitle %}Manage supplier information{% endblock %}
+
+{% block header_actions %}
+<button class="action-btn" onclick="openAddSupplierModal()">
+    <i class="fas fa-plus"></i> Add Supplier
+</button>
+<button class="action-btn" onclick="window.inventoryManager.refreshSuppliers()">
+    <i class="fas fa-sync"></i> Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="suppliers-container">
+    <div class="dashboard-card">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Supplier Name</th>
+                        <th>Contact Person</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="suppliersTableBody">
+                    <tr>
+                        <td colspan="5" class="text-center">Loading suppliers...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Add/Edit Supplier Modal -->
+<div id="supplierModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="supplierModalTitle">Add Supplier</h3>
+            <span class="close" onclick="closeSupplierModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="supplierForm">
+                <input type="hidden" id="supplierId" name="supplierId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="supplierName">Supplier Name</label>
+                        <input type="text" id="supplierName" name="supplierName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPerson">Contact Person</label>
+                        <input type="text" id="contactPerson" name="contactPerson" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contactNumber">Contact Number</label>
+                        <input type="text" id="contactNumber" name="contactNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="supplierEmail">Email</label>
+                        <input type="email" id="supplierEmail" name="supplierEmail" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="supplierAddress">Address</label>
+                    <textarea id="supplierAddress" name="supplierAddress" rows="3"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="action-btn secondary" onclick="closeSupplierModal()">Cancel</button>
+            <button type="submit" form="supplierForm" class="action-btn">Save Supplier</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize suppliers data when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.inventoryManager) {
+            window.inventoryManager.refreshSuppliers();
+        }
+        
+        // Add form submission handler
+        const supplierForm = document.getElementById('supplierForm');
+        if (supplierForm) {
+            supplierForm.addEventListener('submit', function(e) {
+                window.inventoryManager.handleSupplierFormSubmit(e);
+            });
+        }
+    });
+
+function openAddSupplierModal() {
+    document.getElementById('supplierModalTitle').textContent = 'Add Supplier';
+    document.getElementById('supplierId').value = '';
+    document.getElementById('supplierForm').reset();
+    
+    const modal = document.getElementById('supplierModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeSupplierModal() {
+    if (window.inventoryManager) {
+        window.inventoryManager.closeSupplierModal();
+    }
+}
+
+// Global functions
+window.openAddSupplierModal = openAddSupplierModal;
+window.closeSupplierModal = closeSupplierModal;
+</script>
+{% endblock %} 

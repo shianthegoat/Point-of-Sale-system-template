@@ -1,0 +1,358 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Inventory - POS System{% endblock %}
+
+{% block page_title %}Inventory Management{% endblock %}
+{% block page_subtitle %}Manage product inventory and stock levels{% endblock %}
+
+{% block header_actions %}
+<button class="action-btn" onclick="openAddInventoryModal()">
+    <i class="fas fa-plus"></i> Add Item
+</button>
+<button class="action-btn" onclick="window.inventoryManager.refreshInventoryTable()">
+    <i class="fas fa-sync"></i> Refresh
+</button>
+<div class="search-box">
+    <input type="text" id="inventorySearch" placeholder="Search inventory..." class="search-input">
+    <i class="fas fa-search search-icon"></i>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="inventory-container">
+    <!-- Inventory Summary -->
+    <div class="inventory-summary">
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-boxes"></i>
+            </div>
+            <div class="summary-content">
+                <div class="summary-number" id="totalItems">0</div>
+                <div class="summary-label">Total Items</div>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="summary-content">
+                <div class="summary-number" id="lowStockItems">0</div>
+                <div class="summary-label">Low Stock Items</div>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="summary-content">
+                <div class="summary-number" id="outOfStockItems">0</div>
+                <div class="summary-label">Out of Stock</div>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="summary-content">
+                <div class="summary-number" id="totalValue">₱0.00</div>
+                <div class="summary-label">Total Value</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Filters -->
+    <div class="inventory-filters">
+        <div class="filter-group">
+            <label for="categoryFilter">Category:</label>
+            <select id="categoryFilter" class="filter-select">
+                <option value="">All Categories</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="stockFilter">Stock Level:</label>
+            <select id="stockFilter" class="filter-select">
+                <option value="">All Items</option>
+                <option value="in_stock">In Stock</option>
+                <option value="low_stock">Low Stock (≤5)</option>
+                <option value="out_of_stock">Out of Stock</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="supplierFilter">Supplier:</label>
+            <select id="supplierFilter" class="filter-select">
+                <option value="">All Suppliers</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="dashboard-card">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Category</th>
+                        <th>Stock</th>
+                        <th>Price</th>
+                        <th>Supplier</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                    <tr>
+                        <td colspan="7" class="text-center">Loading inventory...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Add/Edit Inventory Modal -->
+<div id="inventoryModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="inventoryModalTitle">Add Inventory Item</h3>
+            <span class="close" onclick="closeInventoryModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="inventoryForm">
+                <input type="hidden" id="inventoryId" name="inventoryId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="itemName">Item Name *</label>
+                        <input type="text" id="itemName" name="itemName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemCategory">Category</label>
+                        <select id="itemCategory" name="itemCategory">
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="itemQuantity">Stock Quantity *</label>
+                        <input type="number" id="itemQuantity" name="itemQuantity" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="itemPrice">Price (₱) *</label>
+                        <input type="number" id="itemPrice" name="itemPrice" min="0" step="0.01" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="itemSupplier">Supplier</label>
+                    <select id="itemSupplier" name="itemSupplier">
+                        <option value="">Select Supplier</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="action-btn secondary" onclick="closeInventoryModal()">Cancel</button>
+            <button type="submit" form="inventoryForm" class="action-btn">Save Item</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize InventoryManager
+window.inventoryManager = new InventoryManager();
+window.inventoryManager.init();
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load inventory data
+    window.inventoryManager.refreshInventoryTable();
+    
+    // Setup search and filters
+    setupInventorySearch();
+    setupInventoryFilters();
+    
+    // Load filter options
+    loadFilterOptions();
+    
+    // Add form submission handler
+    const inventoryForm = document.getElementById('inventoryForm');
+    if (inventoryForm) {
+        inventoryForm.addEventListener('submit', function(e) {
+            window.inventoryManager.handleInventoryFormSubmit(e);
+        });
+    }
+});
+
+function setupInventorySearch() {
+    const searchInput = document.getElementById('inventorySearch');
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('#inventoryTableBody tr');
+        const visibleItems = [];
+        
+        tableRows.forEach(row => {
+            if (row.cells.length < 2) return; // Skip loading/error rows
+            
+            const itemName = row.cells[0].textContent.toLowerCase();
+            const category = row.cells[1].textContent.toLowerCase();
+            const supplier = row.cells[4].textContent.toLowerCase(); // New supplier column
+            
+            if (itemName.includes(query) || category.includes(query) || supplier.includes(query)) {
+                row.style.display = '';
+                // Collect visible items for summary calculation
+                const itemData = {
+                    stock: parseInt(row.cells[2].textContent) || 0,
+                    price: parseFloat(row.cells[3].textContent.replace(/[₱,]/g, '')) || 0
+                };
+                visibleItems.push(itemData);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update summary cards with visible items
+        if (window.inventoryManager) {
+            window.inventoryManager.updateInventorySummaryFromVisible(visibleItems);
+        }
+    });
+}
+
+function setupInventoryFilters() {
+    const categoryFilter = document.getElementById('categoryFilter');
+    const stockFilter = document.getElementById('stockFilter');
+    const supplierFilter = document.getElementById('supplierFilter');
+
+    categoryFilter.addEventListener('change', applyFilters);
+    stockFilter.addEventListener('change', applyFilters);
+    supplierFilter.addEventListener('change', applyFilters);
+}
+
+function applyFilters() {
+    const categoryFilter = document.getElementById('categoryFilter').value;
+    const stockFilter = document.getElementById('stockFilter').value;
+    const supplierFilter = document.getElementById('supplierFilter').value;
+    
+    const tableRows = document.querySelectorAll('#inventoryTableBody tr');
+    const visibleItems = [];
+    
+    tableRows.forEach(row => {
+        if (row.cells.length < 2) return; // Skip loading/error rows
+        
+        let shouldShow = true;
+        
+        // Category filter (column 1)
+        if (categoryFilter && row.cells[1].textContent !== categoryFilter) {
+            shouldShow = false;
+        }
+        
+        // Stock filter (column 2)
+        if (stockFilter) {
+            const stock = parseInt(row.cells[2].textContent) || 0;
+            switch (stockFilter) {
+                case 'in_stock':
+                    shouldShow = shouldShow && stock > 5;
+                    break;
+                case 'low_stock':
+                    shouldShow = shouldShow && stock > 0 && stock <= 5;
+                    break;
+                case 'out_of_stock':
+                    shouldShow = shouldShow && stock === 0;
+                    break;
+            }
+        }
+        
+        // Supplier filter (column 4 - new supplier column)
+        if (supplierFilter && row.cells[4].textContent !== supplierFilter) {
+            shouldShow = false;
+        }
+        
+        if (shouldShow) {
+            row.style.display = '';
+            // Collect visible items for summary calculation
+            const itemData = {
+                stock: parseInt(row.cells[2].textContent) || 0,
+                price: parseFloat(row.cells[3].textContent.replace(/[₱,]/g, '')) || 0
+            };
+            visibleItems.push(itemData);
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update summary cards with filtered data
+    if (window.inventoryManager) {
+        window.inventoryManager.updateInventorySummaryFromVisible(visibleItems);
+    }
+}
+
+async function loadFilterOptions() {
+    try {
+        // Load categories
+        const categoriesData = await window.api.getCategories();
+        if (categoriesData && categoriesData.success) {
+            const categoryFilter = document.getElementById('categoryFilter');
+            const itemCategory = document.getElementById('itemCategory');
+            
+            const categories = categoriesData.categories || [];
+            const optionsHTML = categories.map(cat => 
+                `<option value="${window.utils.escapeHtml(cat.name)}">${window.utils.escapeHtml(cat.name)}</option>`
+            ).join('');
+            
+            categoryFilter.innerHTML += optionsHTML;
+            itemCategory.innerHTML += optionsHTML;
+        }
+        
+        // Load suppliers
+        const suppliersData = await window.api.getSuppliers();
+        if (suppliersData && suppliersData.success) {
+            const supplierFilter = document.getElementById('supplierFilter');
+            const itemSupplier = document.getElementById('itemSupplier');
+            
+            const suppliers = suppliersData.suppliers || [];
+            const optionsHTML = suppliers.map(supp => 
+                `<option value="${window.utils.escapeHtml(supp.name)}">${window.utils.escapeHtml(supp.name)}</option>`
+            ).join('');
+            
+            supplierFilter.innerHTML += optionsHTML;
+            itemSupplier.innerHTML += optionsHTML;
+        }
+        
+    } catch (error) {
+        console.error('Error loading filter options:', error);
+    }
+}
+
+function openAddInventoryModal() {
+    document.getElementById('inventoryModalTitle').textContent = 'Add Inventory Item';
+    document.getElementById('inventoryId').value = '';
+    document.getElementById('inventoryForm').reset();
+    
+    const modal = document.getElementById('inventoryModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeInventoryModal() {
+    const modal = document.getElementById('inventoryModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.getElementById('inventoryForm').reset();
+    }
+}
+
+// Global functions for modal management
+window.openAddInventoryModal = openAddInventoryModal;
+window.closeInventoryModal = closeInventoryModal;
+</script>
+{% endblock %} 

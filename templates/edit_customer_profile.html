@@ -1,0 +1,210 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Edit Customer Profile - POS System{% endblock %}
+
+{% block page_title %}Edit Customer Profile{% endblock %}
+{% block page_subtitle %}Update customer information and profile picture{% endblock %}
+
+{% block content %}
+<div class="edit-profile-container" style="display: flex; flex-direction: column; align-items: center; margin-top: 40px;">
+    <form id="editProfileForm" class="edit-profile-form" enctype="multipart/form-data">
+        <div class="edit-profile-pic-block">
+            <img id="editProfilePic" src="https://ui-avatars.com/api/?name=Customer+Name&background=3498db&color=fff&size=128" alt="Profile Picture" class="profile-pic" />
+            <input type="file" id="profilePicInput" name="profile_picture" accept="image/*" style="margin-top: 10px;" />
+        </div>
+        <div class="edit-profile-fields">
+            <div class="edit-profile-row">
+                <label for="editName">Name:</label>
+                <input type="text" id="editName" name="name" required />
+            </div>
+            <div class="edit-profile-row">
+                <label for="editAge">Age:</label>
+                <input type="text" id="editAge" name="age" />
+            </div>
+            <div class="edit-profile-row">
+                <label for="editSex">Sex:</label>
+                <input type="text" id="editSex" name="sex" />
+            </div>
+            <div class="edit-profile-row">
+                <label for="editAddress">Address:</label>
+                <input type="text" id="editAddress" name="address" />
+            </div>
+            <div class="edit-profile-row">
+                <label for="editOccupation">Occupation:</label>
+                <input type="text" id="editOccupation" name="occupation" />
+            </div>
+            <div class="edit-profile-row">
+                <label for="editBusiness">Business:</label>
+                <input type="text" id="editBusiness" name="business" />
+            </div>
+        </div>
+        <div class="edit-profile-actions">
+            <button type="submit" class="save-btn">Save</button>
+            <a href="/customer_profile" class="cancel-btn">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function getQueryParam(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+}
+
+async function loadCustomerForEdit() {
+    const name = getQueryParam('name');
+    if (!name) return;
+    try {
+        const res = await fetch(`/api/customers/${encodeURIComponent(name)}`);
+        const data = await res.json();
+        if (data && data.success && data.customer) {
+            const c = data.customer;
+            document.getElementById('editName').value = c.name || '';
+            document.getElementById('editAge').value = c.age || '';
+            document.getElementById('editSex').value = c.sex || '';
+            document.getElementById('editAddress').value = c.address || '';
+            document.getElementById('editOccupation').value = c.occupation || '';
+            document.getElementById('editBusiness').value = c.business || '';
+            // Profile picture preview
+            const pic = c.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'Customer')}&background=3498db&color=fff&size=128`;
+            document.getElementById('editProfilePic').src = pic;
+        }
+    } catch (e) {
+        // Optionally show error
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadCustomerForEdit);
+
+document.getElementById('editProfileForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    // Add the original name as a hidden field for identification
+    const originalName = getQueryParam('name');
+    if (originalName) {
+        formData.append('original_name', originalName);
+    }
+    try {
+        const res = await fetch('/api/customers/update', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if (data && data.success) {
+            // Redirect to profile page
+            window.location.href = `/customer_profile?name=${encodeURIComponent(document.getElementById('editName').value)}`;
+        } else {
+            alert(data.error || 'Failed to update customer profile.');
+        }
+    } catch (err) {
+        alert('Error updating customer profile.');
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.edit-profile-form {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(52,152,219,0.08);
+    padding: 32px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 600px;
+    max-width: 700px;
+    width: 100%;
+    gap: 24px;
+}
+.edit-profile-pic-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.profile-pic {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #3498db;
+    background: #eaf6fb;
+}
+.edit-profile-fields {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.edit-profile-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.edit-profile-row label {
+    min-width: 110px;
+    font-weight: 600;
+    color: #3498db;
+}
+.edit-profile-row input[type="text"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #e1e8ed;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #222;
+    background: #f8f9fa;
+    transition: border 0.2s;
+}
+.edit-profile-row input[type="text"]:focus {
+    border-color: #3498db;
+    outline: none;
+}
+.edit-profile-actions {
+    display: flex;
+    gap: 18px;
+    margin-top: 12px;
+}
+.save-btn {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 4px rgba(52,152,219,0.08);
+}
+.save-btn:hover {
+    background: #217dbb;
+    box-shadow: 0 2px 8px rgba(52,152,219,0.15);
+}
+.cancel-btn {
+    background: #e1e8ed;
+    color: #222;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+.cancel-btn:hover {
+    background: #d0dae3;
+    color: #3498db;
+}
+@media (max-width: 800px) {
+    .edit-profile-form {
+        max-width: 98vw;
+        min-width: 0;
+        padding: 24px 8px;
+    }
+}
+</style>
+{% endblock %} 

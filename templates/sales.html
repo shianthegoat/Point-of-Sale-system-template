@@ -1,0 +1,316 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Sales History - POS System{% endblock %}
+
+{% block page_title %}Sales History{% endblock %}
+{% block page_subtitle %}View and manage sales transactions{% endblock %}
+
+{% block header_actions %}
+<button class="action-btn" onclick="window.salesManager.refreshSales()">
+    <i class="fas fa-sync"></i> Refresh
+</button>
+<div class="search-box">
+    <input type="text" id="salesSearch" placeholder="Search sales..." class="search-input">
+    <i class="fas fa-search search-icon"></i>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="sales-container">
+    <!-- Sales Filters -->
+    <div class="sales-filters">
+        <div class="filter-group">
+            <label for="dateFilter">Date Range:</label>
+            <select id="dateFilter" class="filter-select">
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="custom">Custom Range</option>
+            </select>
+        </div>
+        <div class="filter-group" id="customDateRange" style="display: none;">
+            <label for="startDate">Start Date:</label>
+            <input type="date" id="startDate" class="filter-input">
+            <label for="endDate">End Date:</label>
+            <input type="date" id="endDate" class="filter-input">
+        </div>
+        <div class="filter-group">
+            <label for="customerFilter">Customer:</label>
+            <select id="customerFilter" class="filter-select">
+                <option value="">All Customers</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="amountFilter">Amount Range:</label>
+            <select id="amountFilter" class="filter-select">
+                <option value="">All Amounts</option>
+                <option value="0-1000">₱0 - ₱1,000</option>
+                <option value="1000-5000">₱1,000 - ₱5,000</option>
+                <option value="5000-10000">₱5,000 - ₱10,000</option>
+                <option value="10000+">₱10,000+</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Sales Summary -->
+    <div class="sales-summary">
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="summary-content">
+                <div class="summary-number" id="totalSalesAmount">₱0.00</div>
+                <div class="summary-label">Total Sales</div>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="summary-content">
+                <div class="summary-number" id="totalTransactions">0</div>
+                <div class="summary-label">Total Transactions</div>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-calculator"></i>
+            </div>
+            <div class="summary-content">
+                <div class="summary-number" id="averageOrder">₱0.00</div>
+                <div class="summary-label">Average Order</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="dashboard-card">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Salesperson</th>
+                    </tr>
+                </thead>
+                <tbody id="salesTableBody">
+                    <tr>
+                        <td colspan="5" class="text-center">Loading sales history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container">
+        <div class="pagination-info">
+            <span id="paginationInfo">Showing 0 of 0 results</span>
+        </div>
+        <div class="pagination-controls">
+            <button class="pagination-btn" id="prevPage" onclick="previousPage()" disabled>
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+            <span class="page-numbers" id="pageNumbers"></span>
+            <button class="pagination-btn" id="nextPage" onclick="nextPage()" disabled>
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = 1;
+let totalPages = 1;
+let currentFilters = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load sales data
+    window.salesManager.refreshSales();
+    
+    // Setup search and filters
+    setupSalesSearch();
+    setupSalesFilters();
+    
+    // Load customer filter options
+    loadCustomerFilterOptions();
+});
+
+function setupSalesSearch() {
+    const searchInput = document.getElementById('salesSearch');
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('#salesTableBody tr');
+        
+        tableRows.forEach(row => {
+            if (row.cells.length < 2) return; // Skip loading/error rows
+            
+            const customerName = row.cells[1].textContent.toLowerCase();
+            const items = row.cells[2].textContent.toLowerCase();
+            const salesperson = row.cells[4].textContent.toLowerCase();
+            
+            if (customerName.includes(query) || items.includes(query) || salesperson.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+}
+
+function setupSalesFilters() {
+    const dateFilter = document.getElementById('dateFilter');
+    const customerFilter = document.getElementById('customerFilter');
+    const amountFilter = document.getElementById('amountFilter');
+    
+    dateFilter.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            document.getElementById('customDateRange').style.display = 'flex';
+        } else {
+            document.getElementById('customDateRange').style.display = 'none';
+        }
+        applySalesFilters();
+    });
+    
+    customerFilter.addEventListener('change', applySalesFilters);
+    amountFilter.addEventListener('change', applySalesFilters);
+    
+    // Custom date range inputs
+    document.getElementById('startDate').addEventListener('change', applySalesFilters);
+    document.getElementById('endDate').addEventListener('change', applySalesFilters);
+}
+
+function applySalesFilters() {
+    const dateFilter = document.getElementById('dateFilter').value;
+    const customerFilter = document.getElementById('customerFilter').value;
+    const amountFilter = document.getElementById('amountFilter').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    currentFilters = {
+        dateFilter,
+        customerFilter,
+        amountFilter,
+        startDate,
+        endDate
+    };
+    
+    // Reset to first page when filters change
+    currentPage = 1;
+    
+    // Reload sales with filters
+    window.salesManager.refreshSalesWithFilters(currentFilters, currentPage);
+}
+
+async function loadCustomerFilterOptions() {
+    try {
+        const data = await window.api.getCustomers();
+        
+        if (data && data.success) {
+            const customerFilter = document.getElementById('customerFilter');
+            const customers = data.customers || [];
+            
+            const optionsHTML = customers.map(customer => 
+                `<option value="${window.utils.escapeHtml(customer.name)}">${window.utils.escapeHtml(customer.name)}</option>`
+            ).join('');
+            
+            customerFilter.innerHTML += optionsHTML;
+        }
+        
+    } catch (error) {
+        console.error('Error loading customer filter options:', error);
+    }
+}
+
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        window.salesManager.refreshSalesWithFilters(currentFilters, currentPage);
+    }
+}
+
+function nextPage() {
+    if (currentPage < totalPages) {
+        currentPage++;
+        window.salesManager.refreshSalesWithFilters(currentFilters, currentPage);
+    }
+}
+
+function goToPage(page) {
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        window.salesManager.refreshSalesWithFilters(currentFilters, currentPage);
+    }
+}
+
+function updatePagination(totalResults, resultsPerPage = 20) {
+    totalPages = Math.ceil(totalResults / resultsPerPage);
+    
+    const paginationInfo = document.getElementById('paginationInfo');
+    const pageNumbers = document.getElementById('pageNumbers');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    // Update info
+    const startResult = (currentPage - 1) * resultsPerPage + 1;
+    const endResult = Math.min(currentPage * resultsPerPage, totalResults);
+    paginationInfo.textContent = `Showing ${startResult}-${endResult} of ${totalResults} results`;
+    
+    // Update buttons
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+    
+    // Update page numbers
+    let pageNumbersHTML = '';
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+        for (let i = 1; i <= totalPages; i++) {
+            pageNumbersHTML += `<button class="page-number ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+    } else {
+        // Show first page, current page, and last page with ellipsis
+        pageNumbersHTML += `<button class="page-number ${1 === currentPage ? 'active' : ''}" onclick="goToPage(1)">1</button>`;
+        
+        if (currentPage > 3) {
+            pageNumbersHTML += '<span class="page-ellipsis">...</span>';
+        }
+        
+        for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+            pageNumbersHTML += `<button class="page-number ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        
+        if (currentPage < totalPages - 2) {
+            pageNumbersHTML += '<span class="page-ellipsis">...</span>';
+        }
+        
+        pageNumbersHTML += `<button class="page-number ${totalPages === currentPage ? 'active' : ''}" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    pageNumbers.innerHTML = pageNumbersHTML;
+}
+
+// Global functions
+window.previousPage = previousPage;
+window.nextPage = nextPage;
+window.goToPage = goToPage;
+window.updatePagination = updatePagination;
+
+// Initialize sales data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.salesManager) {
+        window.salesManager.refreshSales();
+    }
+});
+</script>
+{% endblock %} 

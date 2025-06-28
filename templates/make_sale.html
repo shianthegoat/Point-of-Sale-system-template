@@ -1,0 +1,332 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Make Sale - POS System{% endblock %}
+
+{% block page_title %}Make Sale{% endblock %}
+{% block page_subtitle %}Process customer transactions{% endblock %}
+
+{% block content %}
+<div class="make-sale-grid">
+    <!-- Customer Information -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-user"></i>
+                Customer Information
+            </div>
+        </div>
+        <div class="customer-info-content">
+            <div class="form-group">
+                <label>Customer Type</label>
+                <div class="customer-type-selection">
+                    <label class="radio-option">
+                        <input type="radio" name="customerType" value="existing" id="existingCustomer" checked>
+                        <span class="radio-label">Existing Customer</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="customerType" value="new" id="newCustomer">
+                        <span class="radio-label">New Customer</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="customerName">Customer Name</label>
+                <select id="customerNameDropdown" class="form-control">
+                    <option value="">Select an existing customer...</option>
+                </select>
+                <input type="text" id="customerNameInput" class="form-control" placeholder="Enter new customer name..." style="display: none;">
+                <div class="customer-validation-message" id="customerValidationMessage"></div>
+            </div>
+            <div class="customer-search-results" id="customerSearchResults" style="display: none;">
+                <!-- Search results will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Items Selection -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-boxes"></i>
+                Select Items
+            </div>
+            <div class="card-actions">
+                <div class="search-box">
+                    <input type="text" id="itemSearch" placeholder="Search items..." class="search-input">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                <button class="action-btn" onclick="window.salesManager.refreshSaleInventory()">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+        </div>
+        <div class="items-selection-content">
+            <div class="items-categories" id="itemsCategories">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i> Loading inventory...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Summary -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-shopping-cart"></i>
+                Cart Summary
+            </div>
+            <div class="card-actions">
+                <button class="action-btn danger" onclick="window.salesManager.clearCart()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+        </div>
+        <div class="cart-summary-content">
+            <div class="cart-items" id="cartItems">
+                <div class="empty-cart">Cart is empty</div>
+            </div>
+            
+            <div class="cart-total">
+                <div class="total-row">
+                    <span class="total-label">Subtotal:</span>
+                    <span class="total-value" id="cartSubtotal">₱0.00</span>
+                </div>
+                <div class="total-row">
+                    <span class="total-label">Tax (12%):</span>
+                    <span class="total-value" id="cartTax">₱0.00</span>
+                </div>
+                <div class="total-row total-final">
+                    <span class="total-label">Total:</span>
+                    <span class="total-value" id="cartTotal">₱0.00</span>
+                </div>
+            </div>
+            
+            <div class="cart-actions">
+                <button class="action-btn primary btn-large" type="button" onclick="window.salesManager.completeSale()">
+                    <i class="fas fa-check"></i> Complete Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load sale inventory
+    window.salesManager.refreshSaleInventory();
+    
+    // Setup customer type selection
+    setupCustomerTypeSelection();
+    
+    // Setup item search
+    setupItemSearch();
+});
+
+function setupCustomerTypeSelection() {
+    const existingCustomerRadio = document.getElementById('existingCustomer');
+    const newCustomerRadio = document.getElementById('newCustomer');
+    const customerNameDropdown = document.getElementById('customerNameDropdown');
+    const customerNameInput = document.getElementById('customerNameInput');
+    const validationMessage = document.getElementById('customerValidationMessage');
+    
+    // Load existing customers into dropdown
+    loadExistingCustomers();
+    
+    // Set initial state based on default selection (Existing Customer is checked by default)
+    if (existingCustomerRadio.checked) {
+        customerNameDropdown.style.display = 'block';
+        customerNameInput.style.display = 'none';
+    } else {
+        customerNameDropdown.style.display = 'none';
+        customerNameInput.style.display = 'block';
+    }
+    
+    // Handle radio button changes
+    existingCustomerRadio.addEventListener('change', function() {
+        if (this.checked) {
+            customerNameDropdown.style.display = 'block';
+            customerNameInput.style.display = 'none';
+            validationMessage.textContent = '';
+            validationMessage.className = 'customer-validation-message';
+            // Clear any existing validation
+            customerNameDropdown.classList.remove('error');
+            customerNameInput.classList.remove('error');
+        }
+    });
+    
+    newCustomerRadio.addEventListener('change', function() {
+        if (this.checked) {
+            customerNameDropdown.style.display = 'none';
+            customerNameInput.style.display = 'block';
+            validationMessage.textContent = '';
+            validationMessage.className = 'customer-validation-message';
+            // Clear any existing validation
+            customerNameDropdown.classList.remove('error');
+            customerNameInput.classList.remove('error');
+        }
+    });
+    
+    // Handle customer name input validation (for new customers)
+    customerNameInput.addEventListener('input', function() {
+        const customerName = this.value.trim();
+        
+        // Clear previous validation
+        validationMessage.textContent = '';
+        validationMessage.className = 'customer-validation-message';
+        this.classList.remove('error');
+        
+        if (customerName.length === 0) {
+            return; // Allow empty for walk-in customers
+        }
+        
+        // Check if customer name already exists
+        checkCustomerExists(customerName);
+    });
+    
+    // Handle dropdown selection (for existing customers)
+    customerNameDropdown.addEventListener('change', function() {
+        const selectedCustomer = this.value;
+        
+        // Clear previous validation
+        validationMessage.textContent = '';
+        validationMessage.className = 'customer-validation-message';
+        this.classList.remove('error');
+        
+        if (selectedCustomer) {
+            // Show customer information
+            selectCustomer(selectedCustomer);
+        }
+    });
+}
+
+async function loadExistingCustomers() {
+    const customerNameDropdown = document.getElementById('customerNameDropdown');
+    
+    try {
+        const data = await window.api.getCustomers();
+        
+        if (data && data.success) {
+            const customers = data.customers || [];
+            
+            // Sort customers alphabetically by name
+            customers.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Clear existing options except the first one
+            customerNameDropdown.innerHTML = '<option value="">Select an existing customer...</option>';
+            
+            // Group customers by first letter
+            const groupedCustomers = {};
+            customers.forEach(customer => {
+                const firstLetter = customer.name.charAt(0).toUpperCase();
+                if (!groupedCustomers[firstLetter]) {
+                    groupedCustomers[firstLetter] = [];
+                }
+                groupedCustomers[firstLetter].push(customer);
+            });
+            
+            // Add grouped customers to dropdown
+            Object.keys(groupedCustomers).sort().forEach(letter => {
+                // Add letter header
+                const headerOption = document.createElement('option');
+                headerOption.value = '';
+                headerOption.textContent = `${letter}:`;
+                headerOption.disabled = true;
+                headerOption.style.fontWeight = 'bold';
+                headerOption.style.backgroundColor = '#f8f9fa';
+                customerNameDropdown.appendChild(headerOption);
+                
+                // Add customers under this letter
+                groupedCustomers[letter].forEach(customer => {
+                    const option = document.createElement('option');
+                    option.value = customer.name;
+                    option.textContent = `${customer.name} (${window.utils.formatNumber(customer.total_sales || 0)} purchases)`;
+                    customerNameDropdown.appendChild(option);
+                });
+            });
+        }
+    } catch (error) {
+        console.error('Error loading existing customers:', error);
+    }
+}
+
+async function checkCustomerExists(customerName) {
+    const validationMessage = document.getElementById('customerValidationMessage');
+    const customerNameInput = document.getElementById('customerNameInput');
+    
+    try {
+        const data = await window.api.getCustomers();
+        
+        if (data && data.success) {
+            const customers = data.customers || [];
+            const existingCustomer = customers.find(customer => 
+                customer.name.toLowerCase() === customerName.toLowerCase()
+            );
+            
+            if (existingCustomer) {
+                validationMessage.textContent = 'Customer already exists. Please select "Existing Customer" or choose a different name.';
+                validationMessage.className = 'customer-validation-message error';
+                customerNameInput.classList.add('error');
+            } else {
+                validationMessage.textContent = 'Customer name is available.';
+                validationMessage.className = 'customer-validation-message success';
+                customerNameInput.classList.remove('error');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking customer existence:', error);
+    }
+}
+
+function setupItemSearch() {
+    const itemSearchInput = document.getElementById('itemSearch');
+    
+    itemSearchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const itemCards = document.querySelectorAll('.item-card');
+        
+        itemCards.forEach(card => {
+            const itemName = card.querySelector('.item-name').textContent.toLowerCase();
+            const itemCategory = card.closest('.category-section')?.querySelector('.category-header h3')?.textContent.toLowerCase() || '';
+            
+            if (itemName.includes(query) || itemCategory.includes(query)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Show/hide category sections based on visible items
+        const categorySections = document.querySelectorAll('.category-section');
+        categorySections.forEach(section => {
+            const visibleItems = section.querySelectorAll('.item-card[style="display: block"]').length;
+            if (visibleItems > 0 || query === '') {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+            }
+        });
+    });
+}
+
+async function selectCustomer(customerName) {
+    const validationMessage = document.getElementById('customerValidationMessage');
+    
+    // Clear any validation messages
+    validationMessage.textContent = '';
+    validationMessage.className = 'customer-validation-message';
+    
+    // Customer is selected, no need to show additional information
+    // The dropdown already shows purchase count in the option text
+}
+
+// Global function to refresh customer dropdown (can be called from other pages)
+window.refreshCustomerDropdown = function() {
+    if (typeof loadExistingCustomers === 'function') {
+        loadExistingCustomers();
+    }
+};
+</script>
+{% endblock %} 

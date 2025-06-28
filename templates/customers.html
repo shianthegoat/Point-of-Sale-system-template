@@ -1,0 +1,293 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Customers - POS System{% endblock %}
+
+{% block page_title %}Customers{% endblock %}
+{% block page_subtitle %}Manage customer profiles and view purchase history{% endblock %}
+
+{% block header_actions %}
+<button class="action-btn" onclick="window.customerManager.refreshCustomers()">
+    <i class="fas fa-sync"></i> Refresh
+</button>
+<div class="search-box">
+    <input type="text" id="customerSearch" placeholder="Search customers..." class="search-input">
+    <i class="fas fa-search search-icon"></i>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="customers-container">
+    <!-- Customer Alphabet Dropdown -->
+    <div class="customer-alpha-dropdown" style="margin-bottom: 24px;">
+        <label for="customerAlphaSelect" style="font-weight: 500; margin-right: 8px;">Select Container:</label>
+        <select id="customerAlphaSelect" class="form-control" style="width: 180px; display: inline-block;">
+            <option value="">-- Select Letter --</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+        </select>
+    </div>
+    <!-- Customer Search and Filters -->
+    <div class="customers-header">
+        <div class="filters-section">
+            <div class="filter-group">
+                <label for="sortBy">Sort by:</label>
+                <select id="sortBy" class="filter-select">
+                    <option value="name">Name</option>
+                    <option value="total_sales">Total Sales</option>
+                    <option value="total_spent">Total Spent</option>
+                    <option value="last_purchase">Last Purchase</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterBy">Filter by:</label>
+                <select id="filterBy" class="filter-select">
+                    <option value="all">All Customers</option>
+                    <option value="active">Active (Last 30 days)</option>
+                    <option value="inactive">Inactive (30+ days)</option>
+                    <option value="high_value">High Value (>₱10,000)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customers Grid -->
+    <div class="customers-grid" id="customersContainer">
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i> Loading customers...
+        </div>
+    </div>
+
+    <!-- Customer Profile Modal -->
+    <div id="customerProfileModal" class="modal" style="display: none;">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="customerProfileModalTitle">Customer Profile</h3>
+                <span class="close" onclick="closeCustomerProfileModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="customerProfileModalBody">
+                <!-- Customer profile content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn" onclick="window.customerManager.showEditCustomerPage()">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </button>
+                <button class="action-btn secondary" onclick="closeCustomerProfileModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load customers
+    window.customerManager.refreshCustomers();
+    
+    // Setup search and filters
+    setupCustomerSearch();
+    setupCustomerFilters();
+});
+
+function setupCustomerSearch() {
+    const searchInput = document.getElementById('customerSearch');
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const customerGroups = document.querySelectorAll('.customer-group');
+        
+        customerGroups.forEach(group => {
+            const customerCards = group.querySelectorAll('.customer-card');
+            let visibleCardsInGroup = 0;
+            
+            customerCards.forEach(card => {
+                const customerName = card.querySelector('.customer-name').textContent.toLowerCase();
+                
+                if (customerName.includes(query)) {
+                    card.style.display = 'block';
+                    visibleCardsInGroup++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Show/hide entire group based on visible cards
+            if (visibleCardsInGroup > 0 || query === '') {
+                group.style.display = 'block';
+            } else {
+                group.style.display = 'none';
+            }
+        });
+        
+        // Show/hide empty state
+        const visibleGroups = document.querySelectorAll('.customer-group[style="display: block"]').length;
+        const visibleCards = document.querySelectorAll('.customer-card[style="display: block"]').length;
+        
+        let emptyState = document.querySelector('.empty-state');
+        if (!emptyState) {
+            emptyState = document.createElement('div');
+            emptyState.className = 'empty-state';
+            document.getElementById('customersContainer').appendChild(emptyState);
+        }
+        
+        if (visibleCards === 0 && query !== '') {
+            emptyState.style.display = 'block';
+            emptyState.textContent = 'No customers found matching your search';
+        } else if (visibleCards === 0) {
+            emptyState.style.display = 'block';
+            emptyState.textContent = 'No customers found';
+        } else {
+            emptyState.style.display = 'none';
+        }
+    });
+}
+
+function setupCustomerFilters() {
+    const sortBy = document.getElementById('sortBy');
+    const filterBy = document.getElementById('filterBy');
+    
+    sortBy.addEventListener('change', function() {
+        sortCustomers(this.value);
+    });
+    
+    filterBy.addEventListener('change', function() {
+        filterCustomers(this.value);
+    });
+}
+
+function sortCustomers(sortBy) {
+    const container = document.getElementById('customersContainer');
+    const customerGroups = Array.from(container.querySelectorAll('.customer-group'));
+    
+    if (sortBy === 'name') {
+        // For name sorting, we maintain alphabetical grouping
+        // The backend already sorts alphabetically, so we just refresh
+        window.customerManager.refreshCustomers();
+        return;
+    }
+    
+    // For other sorting methods, we need to flatten and re-sort
+    const allCustomerCards = Array.from(container.querySelectorAll('.customer-card'));
+    
+    allCustomerCards.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (sortBy) {
+            case 'total_sales':
+                aValue = parseInt(a.querySelector('.stat-number')?.textContent) || 0;
+                bValue = parseInt(b.querySelector('.stat-number')?.textContent) || 0;
+                return bValue - aValue;
+                
+            case 'total_spent':
+                aValue = parseFloat(a.querySelector('.stat-number')?.textContent.replace(/[₱,]/g, '')) || 0;
+                bValue = parseFloat(b.querySelector('.stat-number')?.textContent.replace(/[₱,]/g, '')) || 0;
+                return bValue - aValue;
+                
+            case 'last_purchase':
+                aValue = new Date(a.querySelector('.detail-value')?.textContent);
+                bValue = new Date(b.querySelector('.detail-value')?.textContent);
+                return bValue - aValue;
+                
+            default:
+                return 0;
+        }
+    });
+    
+    // Clear the container and re-add sorted cards without grouping
+    container.innerHTML = '';
+    allCustomerCards.forEach(card => {
+        card.style.display = 'block';
+        container.appendChild(card);
+    });
+}
+
+function filterCustomers(filterBy) {
+    const customerGroups = document.querySelectorAll('.customer-group');
+    
+    customerGroups.forEach(group => {
+        const customerCards = group.querySelectorAll('.customer-card');
+        let visibleCardsInGroup = 0;
+        
+        customerCards.forEach(card => {
+            let shouldShow = true;
+            
+            switch (filterBy) {
+                case 'active':
+                    const lastPurchase = new Date(card.querySelector('.detail-value')?.textContent);
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    shouldShow = lastPurchase > thirtyDaysAgo;
+                    break;
+                    
+                case 'inactive':
+                    const lastPurchaseDate = new Date(card.querySelector('.detail-value')?.textContent);
+                    const thirtyDaysAgoDate = new Date();
+                    thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
+                    shouldShow = lastPurchaseDate <= thirtyDaysAgoDate;
+                    break;
+                    
+                case 'high_value':
+                    const totalSpent = parseFloat(card.querySelector('.stat-number')?.textContent.replace(/[₱,]/g, '')) || 0;
+                    shouldShow = totalSpent > 10000;
+                    break;
+                    
+                case 'all':
+                default:
+                    shouldShow = true;
+                    break;
+            }
+            
+            if (shouldShow) {
+                card.style.display = 'block';
+                visibleCardsInGroup++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Show/hide entire group based on visible cards
+        if (visibleCardsInGroup > 0) {
+            group.style.display = 'block';
+        } else {
+            group.style.display = 'none';
+        }
+    });
+}
+
+function closeCustomerProfileModal() {
+    const modal = document.getElementById('customerProfileModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Global function to show customer profile in modal
+function showCustomerProfileModal(customerName) {
+    const modal = document.getElementById('customerProfileModal');
+    const modalTitle = document.getElementById('customerProfileModalTitle');
+    const modalBody = document.getElementById('customerProfileModalBody');
+    
+    if (modal && modalTitle && modalBody) {
+        modalTitle.textContent = `Customer Profile: ${customerName}`;
+        modalBody.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i> Loading profile...</div>';
+        modal.style.display = 'block';
+        
+        // Load customer profile data
+        window.customerManager.loadCustomerProfileForModal(customerName, modalBody);
+    }
+}
+
+// Initialize customers data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.customerManager) {
+        window.customerManager.refreshCustomers();
+    }
+});
+</script>
+{% endblock %} 

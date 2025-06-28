@@ -1,0 +1,1520 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Customer Profile - POS System{% endblock %}
+
+{% block page_title %}Customer Profile{% endblock %}
+{% block page_subtitle %}Full details and activity for this customer{% endblock %}
+
+{% block content %}
+<div class="customer-profile-container">
+    <a href="/customers" class="back-btn">&larr; Back to Customers</a>
+    
+    <!-- Profile Card -->
+    <div class="profile-card" id="profileCard">
+        <div class="profile-pic-block">
+            <img id="profilePic" src="https://ui-avatars.com/api/?name=Customer+Name&background=3498db&color=fff&size=128" alt="Profile Picture" class="profile-pic" />
+        </div>
+        <div class="profile-info-block">
+            <div class="profile-header-row">
+                <div class="profile-name" id="profileName">Customer Name</div>
+                <a id="editProfileBtn" class="edit-profile-btn" title="Edit Profile"><i class="fas fa-edit"></i> Edit</a>
+            </div>
+            <div class="profile-row"><span class="profile-label">Age:</span> <span class="profile-value" id="profileAge">N/A</span></div>
+            <div class="profile-row"><span class="profile-label">Sex:</span> <span class="profile-value" id="profileSex">N/A</span></div>
+            <div class="profile-row"><span class="profile-label">Address:</span> <span class="profile-value" id="profileAddress">N/A</span></div>
+            <div class="profile-row"><span class="profile-label">Occupation:</span> <span class="profile-value" id="profileOccupation">N/A</span></div>
+            <div class="profile-row"><span class="profile-label">Business:</span> <span class="profile-value" id="profileBusiness">N/A</span></div>
+        </div>
+    </div>
+    
+    <!-- Stats Card -->
+    <div class="stats-card" id="customerStatsCard" style="display: none;">
+        <h3 class="stats-title">Customer Statistics</h3>
+        <div class="stats-grid">
+            <div class="stats-row"><span class="stats-label">Total Purchases:</span> <span class="stats-value" id="statsTotalPurchases">-</span></div>
+            <div class="stats-row"><span class="stats-label">Total Spent:</span> <span class="stats-value peso" id="statsTotalSpent">-</span></div>
+            <div class="stats-row"><span class="stats-label">Average Order Value:</span> <span class="stats-value peso" id="statsAvgOrderValue">-</span></div>
+            <div class="stats-row"><span class="stats-label">First Purchase:</span> <span class="stats-value" id="statsFirstPurchase">-</span></div>
+            <div class="stats-row"><span class="stats-label">Last Purchase:</span> <span class="stats-value" id="statsLastPurchase">-</span></div>
+        </div>
+    </div>
+    
+    <!-- Cards Row -->
+    <div class="profile-cards-row">
+        <!-- Purchase History Card -->
+        <div class="purchase-history-card" id="purchaseHistoryCard" style="display: none;">
+            <div class="card-header">
+                <h3 class="purchase-history-title">Purchase History</h3>
+                <div class="purchase-controls">
+                    <div class="purchase-search">
+                        <input type="text" id="purchaseSearch" placeholder="Search purchases..." class="search-input">
+                    </div>
+                    <div class="purchase-pagination">
+                        <button id="prevPage" class="pagination-btn" disabled>&lt;</button>
+                        <span id="pageInfo" class="page-info">Page 1</span>
+                        <button id="nextPage" class="pagination-btn">&gt;</button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="purchase-history-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Total (₱)</th>
+                            <th>Items</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchaseHistoryTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Summary Card -->
+        <div class="summary-card" id="customerSummaryCard" style="display: none;">
+            <h3 class="summary-title">Sale Summary</h3>
+            <div class="summary-content">
+                <div class="summary-row"><span class="summary-label">First Purchase:</span> <span class="summary-value" id="summaryFirstPurchase">-</span></div>
+                <div class="summary-row"><span class="summary-label">Recent Purchase:</span> <span class="summary-value" id="summaryRecentPurchase">-</span></div>
+                <div class="summary-row"><span class="summary-label">Current Month Spending:</span> <span class="summary-value peso" id="summaryCurrentMonthSpending">-</span></div>
+                <div class="summary-row"><span class="summary-label">Most Spending (Month):</span> <span class="summary-value" id="summaryMostSpendingMonth">-</span></div>
+                <div class="summary-row"><span class="summary-label">Most Spending (Amount):</span> <span class="summary-value peso" id="summaryMostSpendingAmount">-</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Spending Visualization Card -->
+    <div class="spending-visualization-card" id="spendingVisualizationCard" style="display: none;">
+        <div class="chart-header">
+            <h3 class="spending-visualization-title">Purchase Trend Analysis</h3>
+            <div class="chart-controls">
+                <div class="date-range-filter">
+                    <div class="date-input-group">
+                        <label for="startDate">From:</label>
+                        <input type="date" id="startDate" class="date-input">
+                    </div>
+                    <div class="date-input-group">
+                        <label for="endDate">To:</label>
+                        <input type="date" id="endDate" class="date-input">
+                    </div>
+                    <button id="applyDateFilter" class="apply-filter-btn">
+                        <i class="fas fa-filter"></i> Apply Filter
+                    </button>
+                    <button id="resetDateFilter" class="reset-filter-btn">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+                <div class="chart-type-selector">
+                    <label for="chartType">Chart Type:</label>
+                    <select id="chartType" class="chart-type-select">
+                        <option value="daily">Daily Trend</option>
+                        <option value="weekly">Weekly Trend</option>
+                        <option value="monthly">Monthly Trend</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="chart-stats">
+            <div class="stat-item">
+                <span class="stat-label">Total Purchases:</span>
+                <span class="stat-value" id="chartTotalPurchases">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Total Amount:</span>
+                <span class="stat-value peso" id="chartTotalAmount">₱0.00</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Average per Day:</span>
+                <span class="stat-value peso" id="chartAvgPerDay">₱0.00</span>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="spendingBarChart"></canvas>
+        </div>
+        <div class="chart-legend">
+            <div class="legend-item">
+                <span class="legend-color" style="background: #3498db;"></span>
+                <span class="legend-text">Purchase Amount</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #e74c3c;"></span>
+                <span class="legend-text">Number of Purchases</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Spending Table Card -->
+    <div class="spending-table-card" id="spendingTableCard" style="display: none;">
+        <h3 class="spending-table-title">Spending Table</h3>
+        <div class="table-container">
+            <table class="spending-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Category</th>
+                        <th>Quantity</th>
+                        <th>Total Spent (₱)</th>
+                    </tr>
+                </thead>
+                <tbody id="spendingTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Container and Layout */
+.customer-profile-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 40px;
+    gap: 24px;
+    max-width: 1200px;
+    width: 100%;
+    padding: 0 16px;
+}
+
+/* Back Button */
+.back-btn {
+    display: inline-block;
+    color: #3498db;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.2s;
+    align-self: flex-start;
+    margin-bottom: 8px;
+}
+
+.back-btn:hover {
+    color: #217dbb;
+    text-decoration: underline;
+}
+
+/* Base Card Styles */
+.profile-card, .stats-card, .purchase-history-card, .summary-card, .spending-visualization-card, .spending-table-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(52,152,219,0.08);
+    padding: 24px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Profile Card */
+.profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+.profile-pic-block {
+    text-align: center;
+}
+
+.profile-pic {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #3498db;
+    background: #eaf6fb;
+}
+
+.profile-info-block {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.profile-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.profile-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #222;
+    margin: 0;
+}
+
+.edit-profile-btn {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    box-shadow: 0 1px 4px rgba(52,152,219,0.08);
+}
+
+.edit-profile-btn:hover {
+    background: #217dbb;
+    box-shadow: 0 2px 8px rgba(52,152,219,0.15);
+}
+
+.profile-row {
+    display: flex;
+    gap: 8px;
+    font-size: 1rem;
+    color: #333;
+    flex-wrap: wrap;
+}
+
+.profile-label {
+    font-weight: 600;
+    color: #3498db;
+    min-width: 80px;
+}
+
+.profile-value {
+    font-weight: 500;
+    color: #222;
+}
+
+/* Stats Card */
+.stats-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.stats-title {
+    color: #3498db;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+}
+
+.stats-row {
+    display: flex;
+    gap: 8px;
+    font-size: 1rem;
+    color: #333;
+    align-items: center;
+}
+
+.stats-label {
+    font-weight: 600;
+    color: #3498db;
+    min-width: 140px;
+}
+
+.stats-value {
+    font-weight: 500;
+    color: #222;
+}
+
+/* Cards Row */
+.profile-cards-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    width: 100%;
+}
+
+/* Purchase History Card */
+.purchase-history-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.purchase-history-title {
+    color: #3498db;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.purchase-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.purchase-search {
+    position: relative;
+}
+
+.search-input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    width: 200px;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.purchase-pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-btn {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #e9ecef;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 0.9rem;
+    color: #666;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Table Container */
+.table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e1e8ed;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.purchase-history-table, .spending-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    background: #fff;
+    min-width: 500px;
+}
+
+.purchase-history-table th, .purchase-history-table td,
+.spending-table th, .spending-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e1e8ed;
+}
+
+.purchase-history-table th, .spending-table th {
+    background: #f4f8fb;
+    color: #3498db;
+    font-weight: 700;
+    font-size: 0.95rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.purchase-history-table tr:last-child td,
+.spending-table tr:last-child td {
+    border-bottom: none;
+}
+
+.purchase-history-table tr:hover,
+.spending-table tr:hover {
+    background: #f0f6fa;
+}
+
+.purchase-date {
+    color: #217dbb;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.purchase-total {
+    font-weight: 700;
+    color: #222;
+    white-space: nowrap;
+}
+
+.purchase-items {
+    color: #444;
+    font-size: 0.85rem;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+/* Summary Card */
+.summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: fit-content;
+}
+
+.summary-title {
+    color: #3498db;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.summary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.summary-row {
+    display: flex;
+    gap: 8px;
+    font-size: 0.95rem;
+    color: #333;
+    flex-wrap: wrap;
+}
+
+.summary-label {
+    font-weight: 600;
+    color: #3498db;
+    min-width: 120px;
+}
+
+.summary-value {
+    font-weight: 500;
+    color: #222;
+}
+
+/* Spending Visualization Card */
+.spending-visualization-card {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.spending-visualization-title {
+    color: #3498db;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+    flex: 1;
+    min-width: 200px;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.date-range-filter {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.date-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.date-input-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #555;
+    margin: 0;
+}
+
+.date-input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    min-width: 140px;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.apply-filter-btn, .reset-filter-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.apply-filter-btn {
+    background: #3498db;
+    color: #fff;
+}
+
+.apply-filter-btn:hover {
+    background: #217dbb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.reset-filter-btn {
+    background: #f8f9fa;
+    color: #666;
+    border: 1px solid #ddd;
+}
+
+.reset-filter-btn:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
+.chart-type-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.chart-type-selector label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #555;
+    margin: 0;
+}
+
+.chart-type-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 120px;
+}
+
+.chart-type-select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.chart-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+}
+
+.stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #222;
+}
+
+.chart-container {
+    position: relative;
+    height: 350px;
+    width: 100%;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    padding: 16px;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+}
+
+.legend-text {
+    font-size: 0.9rem;
+    color: #555;
+    font-weight: 500;
+}
+
+/* Enhanced responsive design for chart controls */
+@media (max-width: 1024px) {
+    .chart-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .chart-controls {
+        justify-content: space-between;
+    }
+    
+    .date-range-filter {
+        flex: 1;
+        justify-content: space-between;
+    }
+    
+    .chart-stats {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .chart-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .date-range-filter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-input-group {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .date-input-group label {
+        min-width: 60px;
+    }
+    
+    .date-input {
+        flex: 1;
+    }
+    
+    .chart-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .chart-container {
+        height: 300px;
+    }
+    
+    .chart-legend {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .spending-visualization-title {
+        font-size: 1.1rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+        padding: 12px;
+    }
+    
+    .date-input {
+        min-width: 120px;
+    }
+    
+    .apply-filter-btn, .reset-filter-btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Peso formatting */
+.peso:before {
+    content: '₱';
+    margin-right: 2px;
+    color: #217dbb;
+    font-weight: 700;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .profile-cards-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .purchase-controls {
+        justify-content: space-between;
+    }
+    
+    .search-input {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .customer-profile-container {
+        padding: 0 12px;
+        gap: 20px;
+    }
+    
+    .profile-card, .stats-card, .purchase-history-card, .summary-card, 
+    .spending-visualization-card, .spending-table-card {
+        padding: 20px;
+    }
+    
+    .profile-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .purchase-controls {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .search-input {
+        max-width: none;
+    }
+    
+    .purchase-pagination {
+        justify-content: center;
+    }
+    
+    .table-container {
+        max-height: 300px;
+    }
+    
+    .purchase-history-table, .spending-table {
+        font-size: 0.85rem;
+        min-width: 400px;
+    }
+    
+    .purchase-history-table th, .purchase-history-table td,
+    .spending-table th, .spending-table td {
+        padding: 8px 12px;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-pic {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .profile-name {
+        font-size: 1.2rem;
+    }
+    
+    .stats-title, .purchase-history-title, .summary-title, 
+    .spending-visualization-title, .spending-table-title {
+        font-size: 1.1rem;
+    }
+    
+    .purchase-history-table, .spending-table {
+        min-width: 350px;
+        font-size: 0.8rem;
+    }
+    
+    .purchase-history-table th, .purchase-history-table td,
+    .spending-table th, .spending-table td {
+        padding: 6px 8px;
+    }
+    
+    .chart-container {
+        height: 200px;
+    }
+}
+
+/* Spending Table Card */
+.spending-table-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.spending-table-title {
+    color: #3498db;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js/dist/Chart.min.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Global variables for pagination
+let currentPage = 1;
+let itemsPerPage = 10;
+let allPurchases = [];
+let filteredPurchases = [];
+
+// Global variables for chart functionality
+let allPurchaseData = [];
+let filteredPurchaseData = [];
+let currentChartType = 'daily';
+let currentStartDate = null;
+let currentEndDate = null;
+let spendingChart = null;
+
+function getQueryParam(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+}
+
+async function loadCustomerProfile() {
+    const name = getQueryParam('name');
+    if (!name) return;
+    try {
+        const res = await fetch(`/api/customers/${encodeURIComponent(name)}`);
+        const data = await res.json();
+        if (data && data.success && data.customer) {
+            const c = data.customer;
+            document.getElementById('profileName').textContent = c.name || 'N/A';
+            document.getElementById('profileAge').textContent = c.age || 'N/A';
+            document.getElementById('profileSex').textContent = c.sex || 'N/A';
+            document.getElementById('profileAddress').textContent = c.address || 'N/A';
+            document.getElementById('profileOccupation').textContent = c.occupation || 'N/A';
+            document.getElementById('profileBusiness').textContent = c.business || 'N/A';
+            // Profile picture
+            const pic = c.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'Customer')}&background=3498db&color=fff&size=128`;
+            document.getElementById('profilePic').src = pic;
+            // Set edit button link
+            document.getElementById('editProfileBtn').href = `/edit_customer_profile?name=${encodeURIComponent(c.name)}`;
+        }
+    } catch (e) {
+        console.error('Error loading customer profile:', e);
+    }
+}
+
+function formatPeso(amount) {
+    if (typeof amount !== 'number') amount = Number(amount);
+    if (isNaN(amount)) return '-';
+    return amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function loadCustomerStats() {
+    const name = getQueryParam('name');
+    if (!name) return;
+    try {
+        const res = await fetch(`/api/customers/${encodeURIComponent(name)}/stats`);
+        const data = await res.json();
+        if (data && data.success && data.stats) {
+            document.getElementById('customerStatsCard').style.display = 'block';
+            document.getElementById('statsTotalPurchases').textContent = data.stats.total_purchases;
+            document.getElementById('statsTotalSpent').textContent = formatPeso(data.stats.total_spent);
+            document.getElementById('statsAvgOrderValue').textContent = formatPeso(data.stats.avg_order_value);
+            document.getElementById('statsFirstPurchase').textContent = data.stats.first_purchase ? (new Date(data.stats.first_purchase)).toLocaleDateString('en-PH') : '-';
+            document.getElementById('statsLastPurchase').textContent = data.stats.last_purchase ? (new Date(data.stats.last_purchase)).toLocaleDateString('en-PH') : '-';
+        }
+    } catch (e) {
+        console.error('Error loading customer stats:', e);
+    }
+}
+
+async function loadCustomerPurchaseHistory() {
+    const name = getQueryParam('name');
+    if (!name) return;
+    try {
+        const res = await fetch(`/api/customers/${encodeURIComponent(name)}/purchases`);
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.purchases)) {
+            allPurchases = data.purchases;
+            filteredPurchases = [...allPurchases];
+            currentPage = 1;
+            renderPurchaseHistory();
+            document.getElementById('purchaseHistoryCard').style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Error loading purchase history:', e);
+    }
+}
+
+function renderPurchaseHistory() {
+    const tableBody = document.getElementById('purchaseHistoryTableBody');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    if (filteredPurchases.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;padding:40px;">No purchase history found.</td></tr>';
+        updatePaginationControls();
+        return;
+    }
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pagePurchases = filteredPurchases.slice(startIndex, endIndex);
+    
+    pagePurchases.forEach(purchase => {
+        const date = purchase.date ? (new Date(purchase.date)).toLocaleString('en-PH') : '-';
+        const total = formatPeso(purchase.total);
+        const items = (purchase.items || []).map(item => `${item.name || 'Item'} x${item.quantity || 1}`).join(', ');
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="purchase-date">${date}</td>
+            <td class="purchase-total peso">${total}</td>
+            <td class="purchase-items">${items}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    updatePaginationControls();
+}
+
+function updatePaginationControls() {
+    const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
+    const pageInfo = document.getElementById('pageInfo');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages || 1}`;
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+}
+
+function filterPurchases(searchTerm) {
+    if (!searchTerm.trim()) {
+        filteredPurchases = [...allPurchases];
+    } else {
+        filteredPurchases = allPurchases.filter(purchase => {
+            const date = purchase.date ? (new Date(purchase.date)).toLocaleString('en-PH') : '';
+            const total = formatPeso(purchase.total);
+            const items = (purchase.items || []).map(item => item.name || 'Item').join(' ');
+            const searchString = `${date} ${total} ${items}`.toLowerCase();
+            return searchString.includes(searchTerm.toLowerCase());
+        });
+    }
+    currentPage = 1;
+    renderPurchaseHistory();
+}
+
+async function loadCustomerSummary() {
+    const name = getQueryParam('name');
+    if (!name) return;
+    try {
+        const res = await fetch(`/api/customers/${encodeURIComponent(name)}/summary`);
+        const data = await res.json();
+        if (data && data.success && data.summary) {
+            document.getElementById('customerSummaryCard').style.display = 'block';
+            document.getElementById('summaryFirstPurchase').textContent = data.summary.first_purchase ? (new Date(data.summary.first_purchase)).toLocaleDateString('en-PH') : '-';
+            document.getElementById('summaryRecentPurchase').textContent = data.summary.recent_purchase ? (new Date(data.summary.recent_purchase)).toLocaleDateString('en-PH') : '-';
+            document.getElementById('summaryCurrentMonthSpending').textContent = formatPeso(data.summary.current_month_spending);
+            document.getElementById('summaryMostSpendingMonth').textContent = data.summary.most_spending_month || '-';
+            document.getElementById('summaryMostSpendingAmount').textContent = formatPeso(data.summary.most_spending_amount);
+        }
+    } catch (e) {
+        console.error('Error loading customer summary:', e);
+    }
+}
+
+const USE_MOCK_DATA = true; // Set to false to use real API data. Remove when user says 'GOLAZO'.
+
+async function loadSpendingVisualization() {
+    const name = getQueryParam('name');
+    if (!name) return;
+    
+    try {
+        // Load purchase history data for the customer
+        const res = await fetch(`/api/customers/${encodeURIComponent(name)}/purchases`);
+        const data = await res.json();
+        
+        if (data && data.success && Array.isArray(data.purchases)) {
+            allPurchaseData = data.purchases.map(purchase => ({
+                date: new Date(purchase.date),
+                total: parseFloat(purchase.total) || 0,
+                items: purchase.items || []
+            })).sort((a, b) => a.date - b.date);
+            
+            // Set default date range to last 30 days
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+            
+            currentStartDate = thirtyDaysAgo;
+            currentEndDate = today;
+            
+            // Set date inputs
+            document.getElementById('startDate').value = formatDateForInput(thirtyDaysAgo);
+            document.getElementById('endDate').value = formatDateForInput(today);
+            
+            // Apply initial filter
+            applyDateFilter();
+            
+            // Show the chart card
+            document.getElementById('spendingVisualizationCard').style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Error loading purchase data for visualization:', e);
+        showChartError('Error loading purchase data');
+    }
+}
+
+function formatDateForInput(date) {
+    return date.toISOString().split('T')[0];
+}
+
+function applyDateFilter() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        showChartError('Please select both start and end dates');
+        return;
+    }
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (start > end) {
+        showChartError('Start date cannot be after end date');
+        return;
+    }
+    
+    currentStartDate = start;
+    currentEndDate = end;
+    
+    // Filter data based on date range
+    filteredPurchaseData = allPurchaseData.filter(purchase => {
+        const purchaseDate = new Date(purchase.date);
+        return purchaseDate >= start && purchaseDate <= end;
+    });
+    
+    // Update chart
+    updateChart();
+    updateChartStats();
+}
+
+function resetDateFilter() {
+    // Reset to show all data
+    const firstPurchase = allPurchaseData[0];
+    const lastPurchase = allPurchaseData[allPurchaseData.length - 1];
+    
+    if (firstPurchase && lastPurchase) {
+        currentStartDate = new Date(firstPurchase.date);
+        currentEndDate = new Date(lastPurchase.date);
+        
+        document.getElementById('startDate').value = formatDateForInput(currentStartDate);
+        document.getElementById('endDate').value = formatDateForInput(currentEndDate);
+        
+        filteredPurchaseData = [...allPurchaseData];
+        updateChart();
+        updateChartStats();
+    }
+}
+
+function updateChartStats() {
+    const totalPurchases = filteredPurchaseData.length;
+    const totalAmount = filteredPurchaseData.reduce((sum, purchase) => sum + purchase.total, 0);
+    
+    // Calculate average per day
+    const daysDiff = Math.max(1, Math.ceil((currentEndDate - currentStartDate) / (1000 * 60 * 60 * 24)));
+    const avgPerDay = totalAmount / daysDiff;
+    
+    document.getElementById('chartTotalPurchases').textContent = totalPurchases;
+    document.getElementById('chartTotalAmount').textContent = formatPeso(totalAmount);
+    document.getElementById('chartAvgPerDay').textContent = formatPeso(avgPerDay);
+}
+
+function updateChart() {
+    clearChartError(); // Always ensure canvas is present before rendering
+    const canvas = document.getElementById('spendingBarChart');
+    if (!canvas) {
+        console.error('Chart canvas not found!');
+        return;
+    }
+    // Debug: Check if Chart.js is loaded
+    console.log('Chart.js loaded?', typeof Chart !== 'undefined');
+    const ctx = canvas.getContext('2d');
+    // Destroy previous chart if exists
+    if (spendingChart && typeof spendingChart.destroy === 'function') {
+        spendingChart.destroy();
+    }
+    try {
+        spendingChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: processChartData(filteredPurchaseData, currentChartType).labels,
+                datasets: [
+                    {
+                        label: 'Purchase Amount (₱)',
+                        data: processChartData(filteredPurchaseData, currentChartType).amounts,
+                        backgroundColor: '#3498db',
+                        borderColor: '#2980b9',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Number of Purchases',
+                        data: processChartData(filteredPurchaseData, currentChartType).counts,
+                        backgroundColor: '#e74c3c',
+                        borderColor: '#c0392b',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y1',
+                        type: 'line'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label.includes('Amount')) {
+                                    return `${context.dataset.label}: ₱${context.parsed.y.toLocaleString('en-PH', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    })}`;
+                                } else {
+                                    return `${context.dataset.label}: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: getXAxisTitle(),
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Amount (₱)',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(52, 152, 219, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '₱' + value.toLocaleString('en-PH');
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Number of Purchases',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+        // Clear any error messages (if any left)
+    } catch (chartErr) {
+        console.error('Chart rendering error:', chartErr);
+        showChartError('Error rendering chart');
+    }
+}
+
+function getXAxisTitle() {
+    switch (currentChartType) {
+        case 'daily': return 'Date';
+        case 'weekly': return 'Week';
+        case 'monthly': return 'Month';
+        default: return 'Date';
+    }
+}
+
+function showChartError(message) {
+    const chartContainer = document.querySelector('.chart-container');
+    if (chartContainer) {
+        chartContainer.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #e74c3c; font-weight: 500;">
+                <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+                ${message}
+            </div>
+        `;
+    }
+}
+
+function clearChartError() {
+    const chartContainer = document.querySelector('.chart-container');
+    if (chartContainer) {
+        let canvas = document.getElementById('spendingBarChart');
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+            canvas.id = 'spendingBarChart';
+        }
+        chartContainer.innerHTML = '';
+        chartContainer.appendChild(canvas);
+    }
+}
+
+async function loadSpendingTable() {
+    const name = getQueryParam('name');
+    if (!name) return;
+    try {
+        const res = await fetch(`/api/customers/${encodeURIComponent(name)}/spending_table`);
+        const data = await res.json();
+        const tableBody = document.getElementById('spendingTableBody');
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+        if (data && data.success && Array.isArray(data.table)) {
+            if (data.table.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:40px;">No data found.</td></tr>';
+            } else {
+                data.table.forEach(row => {
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td>${row.item}</td>
+                            <td>${row.category}</td>
+                            <td>${row.quantity}</td>
+                            <td class="peso">${formatPeso(row.amount)}</td>
+                        </tr>
+                    `;
+                });
+            }
+            document.getElementById('spendingTableCard').style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Error loading spending table:', e);
+    }
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Load all data
+    loadCustomerProfile();
+    loadCustomerStats();
+    loadCustomerPurchaseHistory();
+    loadCustomerSummary();
+    loadSpendingVisualization();
+    loadSpendingTable();
+    
+    // Purchase history pagination and search
+    const searchInput = document.getElementById('purchaseSearch');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            filterPurchases(this.value);
+        });
+    }
+    
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPurchaseHistory();
+            }
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function() {
+            const totalPages = Math.ceil(filteredPurchases.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderPurchaseHistory();
+            }
+        });
+    }
+    
+    // Chart controls event listeners
+    const applyFilterBtn = document.getElementById('applyDateFilter');
+    const resetFilterBtn = document.getElementById('resetDateFilter');
+    const chartTypeSelect = document.getElementById('chartType');
+    
+    if (applyFilterBtn) {
+        applyFilterBtn.addEventListener('click', applyDateFilter);
+    }
+    
+    if (resetFilterBtn) {
+        resetFilterBtn.addEventListener('click', resetDateFilter);
+    }
+    
+    if (chartTypeSelect) {
+        chartTypeSelect.addEventListener('change', function() {
+            updateChart();
+        });
+    }
+    
+    // Auto-apply filter when dates change
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    
+    if (startDateInput && endDateInput) {
+        startDateInput.addEventListener('change', function() {
+            if (startDateInput.value && endDateInput.value) {
+                applyDateFilter();
+            }
+        });
+        
+        endDateInput.addEventListener('change', function() {
+            if (startDateInput.value && endDateInput.value) {
+                applyDateFilter();
+            }
+        });
+    }
+});
+
+function processChartData(purchases, type) {
+    const dataMap = new Map();
+    purchases.forEach(purchase => {
+        let key, label;
+        switch (type) {
+            case 'daily':
+                key = purchase.date.toISOString().split('T')[0];
+                label = purchase.date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+                break;
+            case 'weekly':
+                const weekStart = getWeekStart(purchase.date);
+                key = weekStart.toISOString().split('T')[0];
+                label = `Week of ${weekStart.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}`;
+                break;
+            case 'monthly':
+                key = `${purchase.date.getFullYear()}-${String(purchase.date.getMonth() + 1).padStart(2, '0')}`;
+                label = purchase.date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short' });
+                break;
+        }
+        if (!dataMap.has(key)) {
+            dataMap.set(key, { label, total: 0, count: 0 });
+        }
+        const entry = dataMap.get(key);
+        entry.total += purchase.total;
+        entry.count += 1;
+    });
+    const sortedEntries = Array.from(dataMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    return {
+        labels: sortedEntries.map(entry => entry[1].label),
+        amounts: sortedEntries.map(entry => entry[1].total),
+        counts: sortedEntries.map(entry => entry[1].count)
+    };
+}
+</script>
+{% endblock %} 

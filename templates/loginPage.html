@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Login - POS System</title>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <i class="fas fa-store"></i>
+                    <h1>POS System</h1>
+                </div>
+                <p>Sign into your account</p>
+            </div>
+            
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">
+                            <i class="fas fa-info-circle"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form id="loginForm" class="login-form" method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" class="form-control" required>
+                        <option value="">Select your role</option>
+                        <option value="admin">Admin</option>
+                        <option value="user">Sales</option>
+                    </select>
+                </div>
+                <button type="submit" class="login-button">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Sign In</span>
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <p>Need help? Contact your administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Form validation
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const role = document.getElementById('role').value;
+            if (!role) {
+                e.preventDefault();
+                alert('Please select a role');
+                return;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}POS System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">
+                    <i class="fas fa-store"></i>
+                    <span>POS System</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul class="nav-list">
+                    <li class="nav-item active" data-section="dashboard">
+                        <a href="{{ url_for('dashboard') }}" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" data-section="make-sale">
+                        <a href="{{ url_for('make_sale') }}" class="nav-link">
+                            <i class="fas fa-cart-plus"></i>
+                            <span>Make Sale</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" data-section="inventory">
+                        <a href="{{ url_for('inventory') }}" class="nav-link">
+                            <i class="fas fa-boxes"></i>
+                            <span>Inventory</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" data-section="sales">
+                        <a href="{{ url_for('sales') }}" class="nav-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Sales History</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" data-section="statistics" {% if session.get('role') not in ['manager', 'admin'] %}style="display:none;"{% endif %}>
+                        <a href="{{ url_for('statistics') }}" class="nav-link">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Statistics</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" data-section="customers">
+                        <a href="{{ url_for('customers') }}" class="nav-link">
+                            <i class="fas fa-users"></i>
+                            <span>Customers</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" data-section="suppliers">
+                        <a href="{{ url_for('suppliers') }}" class="nav-link">
+                            <i class="fas fa-truck"></i>
+                            <span>Suppliers</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" data-section="categories">
+                        <a href="{{ url_for('categories') }}" class="nav-link">
+                            <i class="fas fa-tags"></i>
+                            <span>Categories</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" data-section="staff">
+                        <a href="{{ url_for('staff') }}" class="nav-link">
+                            <i class="fas fa-user-tie"></i>
+                            <span>Staff</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">{{ session.get('username', 'Staff') }}</div>
+                        <div class="user-role">{{ session.get('role', 'Staff') }}</div>
+                    </div>
+                </div>
+                <div class="logout-section">
+                    <a href="{{ url_for('logout') }}" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Top Header -->
+            <header class="navbar">
+                <div class="navbar-left">
+                    <div class="navbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+                </div>
+                <div class="navbar-right">
+                    <div class="header-actions">
+                        {% block header_actions %}{% endblock %}
+                    </div>
+                    <div class="current-time" id="currentTime">
+                        <i class="fas fa-clock"></i>
+                        <span id="timeDisplay"></span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Common Modals -->
+    {% block modals %}{% endblock %}
+
+    <!-- JavaScript Modules -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/customers.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sales.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Page-specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', {
+                hour12: true,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('timeDisplay').textContent = timeString;
+        }
+        
+        // Update time every second
+        setInterval(updateTime, 1000);
+        updateTime();
+        
+        // Highlight current page in navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const link = item.querySelector('.nav-link');
+                if (link.getAttribute('href') === currentPath) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

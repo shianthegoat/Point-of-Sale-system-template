@@ -1,0 +1,99 @@
+{% extends "base_staff.html" %}
+
+{% block title %}Categories - POS System{% endblock %}
+
+{% block page_title %}Categories{% endblock %}
+{% block page_subtitle %}Manage product categories{% endblock %}
+
+{% block header_actions %}
+<button class="action-btn" onclick="openAddCategoryModal()">
+    <i class="fas fa-plus"></i> Add Category
+</button>
+<button class="action-btn" onclick="window.inventoryManager.refreshCategories()">
+    <i class="fas fa-sync"></i> Refresh
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="categories-container">
+    <div class="dashboard-card">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Category Name</th>
+                        <th>Item Count</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="categoriesTableBody">
+                    <tr>
+                        <td colspan="4" class="text-center">Loading categories...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Add/Edit Category Modal -->
+<div id="categoryModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="categoryModalTitle">Add Category</h3>
+            <span class="close" onclick="closeCategoryModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="categoryForm">
+                <input type="hidden" id="categoryId" name="categoryId">
+                <div class="form-group">
+                    <label for="categoryName">Category Name</label>
+                    <input type="text" id="categoryName" name="categoryName" required>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="action-btn secondary" onclick="closeCategoryModal()">Cancel</button>
+            <button type="submit" form="categoryForm" class="action-btn">Save Category</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize categories data when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.inventoryManager) {
+            window.inventoryManager.refreshCategories();
+        }
+        
+        // Add form submission handler
+        const categoryForm = document.getElementById('categoryForm');
+        if (categoryForm) {
+            categoryForm.addEventListener('submit', function(e) {
+                window.inventoryManager.handleCategoryFormSubmit(e);
+            });
+        }
+    });
+
+    function openAddCategoryModal() {
+        document.getElementById('categoryModalTitle').textContent = 'Add Category';
+        document.getElementById('categoryId').value = '';
+        document.getElementById('categoryForm').reset();
+        
+        const modal = document.getElementById('categoryModal');
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    }
+
+    function closeCategoryModal() {
+        if (window.inventoryManager) {
+            window.inventoryManager.closeCategoryModal();
+        }
+    }
+</script>
+{% endblock %} 

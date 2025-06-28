@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - Server Error</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h1>500</h1>
+                </div>
+                <p>Server Error</p>
+            </div>
+            
+            <div class="empty-state">
+                <i class="fas fa-server"></i>
+                <h3>Oops! Something went wrong</h3>
+                <p>We're experiencing technical difficulties. Please try again later.</p>
+            </div>
+            
+            <div class="auth-footer">
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-home"></i>
+                    <span>Go Home</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
